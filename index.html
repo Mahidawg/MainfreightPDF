@@ -150,10 +150,14 @@
   let isDragging = false;
 
   el.addEventListener('mousedown', (ev) => {
-    if (el.isContentEditable) return; // don't drag while editing
+    if (ev.button !== 0) return; // left mouse only
+    if (el.dataset.type === 'text' && el.isContentEditable) return; // don't drag while editing text
+
     ev.preventDefault();
     selectElement(el);
+
     const rect = el.getBoundingClientRect();
+    const parentRect = el.parentElement.getBoundingClientRect();
     const startX = ev.clientX;
     const startY = ev.clientY;
     const offsetX = startX - rect.left;
@@ -161,44 +165,56 @@
 
     function onMove(e) {
       isDragging = true;
-      el.style.left = (e.clientX - offsetX - rect.parentElement.getBoundingClientRect().left) + 'px';
-      el.style.top = (e.clientY - offsetY - rect.parentElement.getBoundingClientRect().top) + 'px';
+      el.style.left = (e.clientX - offsetX - parentRect.left) + 'px';
+      el.style.top = (e.clientY - offsetY - parentRect.top) + 'px';
     }
+
     function done() {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', done);
       isDragging = false;
     }
+
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', done);
   });
 
-  // Double click toggles edit mode
+  // Double-click handling for edit/resize
   el.addEventListener('dblclick', () => {
-    el.contentEditable = !el.isContentEditable;
-    if (el.isContentEditable) {
-      el.focus();
+    if (el.dataset.type === 'text') {
+      el.contentEditable = !el.isContentEditable;
+      if (el.isContentEditable) {
+        el.focus();
+      }
+    } else if (el.dataset.type === 'image') {
+      const newW = prompt('New width in px', el.style.width.replace('px','')) || el.style.width;
+      const newH = prompt('New height in px', el.style.height.replace('px','')) || el.style.height;
+      el.style.width = newW.endsWith('px') ? newW : newW + 'px';
+      el.style.height = newH.endsWith('px') ? newH : newH + 'px';
     }
   });
 }
 
 btnAddText.addEventListener('click', () => {
   if (!pages.length) return alert('Load a PDF first');
-  const page = pages[0];
+
+  const page = pages[0]; // You can later change this to target the selected page
   const t = document.createElement('div');
   t.className = 'edText';
   t.innerText = 'Double-click to edit';
   t.style.position = 'absolute';
-  t.style.left = '40px';
-  t.style.top = '40px';
+  t.style.left = (page.width / 2 - 80) + 'px';
+  t.style.top = (page.height / 2 - 20) + 'px';
   t.style.width = '160px';
   t.style.height = '40px';
   t.dataset.type = 'text';
+
   page.overlay.appendChild(t);
   makeDraggable(t);
   t.addEventListener('click', () => selectElement(t));
   selectElement(t);
 });
+
 
 
     // Add Image
@@ -210,30 +226,25 @@ btnAddText.addEventListener('click', () => {
       imgInput.value = '';
     });
 
-    async function addImageOverlay(dataUrl) {
-      if (!pages.length) return alert('Load a PDF first');
-      const page = pages[0];
-      const img = document.createElement('img');
-      img.src = dataUrl;
-      img.className = 'edImg';
-      img.style.left = '40px';
-      img.style.top = '80px';
-      img.style.width = '160px';
-      img.style.height = '100px';
-      img.dataset.type = 'image';
-      page.overlay.appendChild(img);
-      makeDraggable(img);
-      img.addEventListener('click', ()=> selectElement(img));
-      // simple resize handle: use CSS width/height editing by double-click for now
-      img.ondblclick = () => {
-        const newW = prompt('Width px', img.style.width.replace('px','')) || img.style.width;
-        const newH = prompt('Height px', img.style.height.replace('px','')) || img.style.height;
-        img.style.width = (typeof newW === 'string' ? newW : newW + 'px');
-        img.style.height = (typeof newH === 'string' ? newH : newH + 'px');
-        updateSidebar();
-      };
-      selectElement(img);
-    }
+   async function addImageOverlay(dataUrl) {
+  if (!pages.length) return alert('Load a PDF first');
+  
+  const page = pages[0];
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  img.className = 'edImg';
+  img.style.position = 'absolute';
+  img.style.left = (page.width / 2 - 80) + 'px';
+  img.style.top = (page.height / 2 - 50) + 'px';
+  img.style.width = '160px';
+  img.style.height = '100px';
+  img.dataset.type = 'image';
+
+  page.overlay.appendChild(img);
+  makeDraggable(img);
+  img.addEventListener('click', () => selectElement(img));
+  selectElement(img);
+}
 
     function readFileAsDataURL(file){ return new Promise(res => { const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(file); })}
 
