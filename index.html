@@ -145,27 +145,61 @@
       selProps.innerHTML = `<b>Type:</b> ${type}<br/><b>Left:</b> ${left}<br/><b>Top:</b> ${top}<br/><b>W:</b> ${w}<br/><b>H:</b> ${h}`;
     }
 
-    // Add Text
-    btnAddText.addEventListener('click', () => {
-      if (!pages.length) return alert('Load a PDF first');
-      // add to first page by default
-      const page = pages[0];
-      const t = document.createElement('div');
-      t.contentEditable = true;
-      t.className = 'edText';
-      t.innerText = 'New text';
-      t.style.position = 'absolute';
-      t.style.left = '40px';
-      t.style.top = '40px';
-      t.style.width = '160px';
-      t.style.height = '40px';
-      t.dataset.type = 'text';
-      page.overlay.appendChild(t);
-      makeDraggable(t);
-      // allow resizing via native CSS resizing for text
-      t.addEventListener('click', ()=> selectElement(t));
-      selectElement(t);
-    });
+    // Add Text and Make Moveable
+    function makeDraggable(el) {
+  let isDragging = false;
+
+  el.addEventListener('mousedown', (ev) => {
+    if (el.isContentEditable) return; // don't drag while editing
+    ev.preventDefault();
+    selectElement(el);
+    const rect = el.getBoundingClientRect();
+    const startX = ev.clientX;
+    const startY = ev.clientY;
+    const offsetX = startX - rect.left;
+    const offsetY = startY - rect.top;
+
+    function onMove(e) {
+      isDragging = true;
+      el.style.left = (e.clientX - offsetX - rect.parentElement.getBoundingClientRect().left) + 'px';
+      el.style.top = (e.clientY - offsetY - rect.parentElement.getBoundingClientRect().top) + 'px';
+    }
+    function done() {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', done);
+      isDragging = false;
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', done);
+  });
+
+  // Double click toggles edit mode
+  el.addEventListener('dblclick', () => {
+    el.contentEditable = !el.isContentEditable;
+    if (el.isContentEditable) {
+      el.focus();
+    }
+  });
+}
+
+btnAddText.addEventListener('click', () => {
+  if (!pages.length) return alert('Load a PDF first');
+  const page = pages[0];
+  const t = document.createElement('div');
+  t.className = 'edText';
+  t.innerText = 'Double-click to edit';
+  t.style.position = 'absolute';
+  t.style.left = '40px';
+  t.style.top = '40px';
+  t.style.width = '160px';
+  t.style.height = '40px';
+  t.dataset.type = 'text';
+  page.overlay.appendChild(t);
+  makeDraggable(t);
+  t.addEventListener('click', () => selectElement(t));
+  selectElement(t);
+});
+
 
     // Add Image
     btnAddImage.addEventListener('click', () => imgInput.click());
