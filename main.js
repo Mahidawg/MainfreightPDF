@@ -1,5 +1,7 @@
 import * as pdfjsLib from './lib/pdf.mjs';
 
+const { PDFDocument } = PDFLib;
+
 // Set the worker source
 pdfjsLib.GlobalWorkerOptions.workerSrc = './lib/pdf.worker.mjs';
 
@@ -148,5 +150,6 @@ async function findAndReplace() {
 
 
 document.getElementById('replace-button').addEventListener('click', findAndReplace);
+
 
 
