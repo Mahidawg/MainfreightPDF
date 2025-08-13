@@ -84,14 +84,20 @@ document.getElementById('file-input').addEventListener('change', (event) => {
 
     const fileReader = new FileReader();
     fileReader.onload = function() {
-        originalPdfBytes = this.result;
-        const typedarray = new Uint8Array(originalPdfBytes);
-        const loadingTask = pdfjsLib.getDocument(typedarray);
-        loadingTask.promise.then(function(pdf) {
-            pdfDoc = pdf;
-            document.getElementById('page-count').textContent = pdfDoc.numPages;
-            pageNum = 1;
-            renderPage(pageNum);
+    originalPdfBytes = this.result; // Keep this original buffer safe for pdf-lib
+
+    // 1. Create a COPY of the buffer for PDF.js to use.
+    const pdfjsBuffer = originalPdfBytes.slice(0);
+
+    // 2. Give the COPY to PDF.js. It will detach this copy, leaving our original untouched.
+    const typedarray = new Uint8Array(pdfjsBuffer);
+    const loadingTask = pdfjsLib.getDocument(typedarray);
+    
+    loadingTask.promise.then(function(pdf) {
+        pdfDoc = pdf;
+        document.getElementById('page-count').textContent = pdfDoc.numPages;
+        pageNum = 1;
+        renderPage(pageNum);
         });
     };
     fileReader.readAsArrayBuffer(file);
@@ -150,6 +156,7 @@ async function findAndReplace() {
 
 
 document.getElementById('replace-button').addEventListener('click', findAndReplace);
+
 
 
 
