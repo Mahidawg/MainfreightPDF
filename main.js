@@ -128,11 +128,11 @@ async function findAndReplace() {
         return;
     }
 
-    const findText = document.getElementalById('find-text').value;
+    const findText = document.getElementById('find-text').value;
     const replaceText = document.getElementById('replace-text').value;
 
     if (!findText) {
-        alert("Please enter text to find.")
+        alert("Please enter text to find.");
         return;
     }
 
@@ -144,22 +144,22 @@ async function findAndReplace() {
         const pages = pdfDocLib.getPages();
         const currentPage = pages[pageNum - 1];
 
-        // 2. Decode the content stream(s) inot a single string
+        // 2. Decode the content stream(s) into a single string
         const contentStreamRef = currentPage.node.get(PDFName.of('Contents'));
         const streams = (contentStreamRef instanceof PDFArray) ? contentStreamRef.asArray() : [contentStreamRef];
         let allContents = '';
-        const decoder = new TextDecoder('utf-8);
+        const decoder = new TextDecoder('utf-8');
         streams.forEach(streamRef => {
             const stream = pdfDocLib.context.lookup(streamRef);
             if (stream instanceof PDFStream) {
                 allContents += decoder.decode(stream.contents);
             }
         });
-
+        
         // 3. PARSE the content stream into tokens
         const tokens = parseContentStream(allContents);
 
-        // 4. MODIFY the tokens iteligently
+        // 4. MODIFY the tokens intelligently
         // Loop through tokens to find the text to replace.
         // We look for a string literal followed by the "Tj" (Show Text) operator.
         for (let i = 0; i < tokens.length; i++) {
@@ -169,16 +169,16 @@ async function findAndReplace() {
                 const currentText = tokens[i].substring(1, tokens[i].length - 1);
 
                 if (currentText === findText) {
-                    console.log('Found and replaced "${findText}"');
-                    // Replace the token with the new text, wrapped in parenthesis
-                    tokens[i] = '(${replaceText})';
+                    console.log(`Found and replaced "${findText}"`);
+                    // Replace the token with the new text, wrapped in parentheses
+                    tokens[i] = `(${replaceText})`;
                 }
             }
         }
 
         // 5. REBUILD the content stream from the modified tokens
         const newContentString = tokens.join(' ');
-
+        
         const encoder = new TextEncoder();
         const newContentBytes = encoder.encode(newContentString);
 
@@ -187,12 +187,12 @@ async function findAndReplace() {
         currentPage.node.set(PDFName.of('Contents'), newStream);
 
         // 7. Save and re-render
-        const new PdfBytes = await pdfDocLib.save();
+        const newPdfBytes = await pdfDocLib.save();
         console.log("Replacement complete. Re-rendering...");
-
+        
         const pdfjsBuffer = newPdfBytes.buffer.slice(0);
-        const loadingTask  = pdfjsLib.getDocument(pdfjsBuffer);
-
+        const loadingTask = pdfjsLib.getDocument(pdfjsBuffer);
+        
         loadingTask.promise.then(function(pdf) {
             pdfDoc = pdf;
             originalPdfBytes = newPdfBytes.buffer;
@@ -204,6 +204,7 @@ async function findAndReplace() {
         alert("An error occurred during the replacement process. Check the console for details.");
     }
 }
+
 
 
 
