@@ -1,0 +1,9 @@
+body { font-family: sans-serif; }
+#pdf-viewer-container {
+    border: 1px solid black;
+    width: 800px;
+    height: 1000px;
+    overflow: auto;
+}
+.toolbar { margin-bottom: 10px; }
+canvas { display: block; margin: 0 auto; }
