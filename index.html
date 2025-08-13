@@ -4,20 +4,20 @@
     <meta charset="UTF-8">
     <title>PDF.js Content Stream Editor</title>
     <link rel="stylesheet" href="style.css">
+    <!-- The pdf-lib script is fine here in the head -->
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 </head>
 <body>
+    <!-- ALL your HTML content like h1, div, canvas, button, input... -->
     <h1>PDF Viewer</h1>
     <div class="toolbar">
-        <input type="file" id="file-input" accept=".pdf">
-        <button id="prev-page">Previous</button>
-        <button id="next-page">Next</button>
-        <button id="inspect-content">Inspect Content Steam</button>
-        <span>Page: <span id="page-num">0</span> / <span id="page-count">0</span></span>
+        <!-- ... all your buttons and inputs ... -->
     </div>
     <div id="pdf-viewer-container">
         <canvas id="pdf-canvas"></canvas>
     </div>
 
+    <!-- MOVE YOUR SCRIPT TAG TO HERE, JUST BEFORE THE CLOSING </body> TAG -->
     <script type="module" src="main.js"></script>
 </body>
 </html>
