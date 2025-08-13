@@ -103,70 +103,98 @@ document.getElementById('file-input').addEventListener('change', (event) => {
     fileReader.readAsArrayBuffer(file);
 });
 
-// The core editing function
+// Helper function to parse the PDF content stream. This is the 'scalpel' that understands PDF syntax.
+function parseContentStream(content) {
+    const tokens = []
+    // This regex is the core of the parser. It looks for specific PDF constructs.
+    // 1. Parenthetical Strings: (\( (?:\\.|[^()])* \))
+    // 2. Hexadecimal Strings: (<[A-Fa-f0-9]+>)
+    // 3. Operators & Others: ([^\s()<>]+)
+    const regex = /(\( (?:\\.|[^()])* \))|(<[A-Fa-f0-9]+>)|([^\s()<>]+)/g;
+    let match;
+    while ((match = regex.exec(contect)) !== null) {
+        // match[1] is a parenthetical string, e.g., (Hello)
+        // match[2] is a hex string, e.g., <48656C6C6F>
+        // match[3] is an operator or value, e.g., /F1 or Tj
+        tokens.push(match[0]);
+    }
+    return tokens;
+}
+
+// New findAndReplace Function
 async function findAndReplace() {
     if (!originalPdfBytes) {
         alert("Please load a PDF first.");
         return;
     }
 
-    const findText = document.getElementById('find-text').value;
+    const findText = document.getElementalById('find-text').value;
     const replaceText = document.getElementById('replace-text').value;
 
     if (!findText) {
-        alert("Please enter text to find.");
+        alert("Please enter text to find.")
         return;
     }
 
     try {
-        const { PDFDocument, PDFArray, PDFStream, PDFName } = PDFLib;
+        const { PDFDocument, PDFName, PDFArray, PDFStream } = PDFLib;
 
-        // 1. Load the PDF with pdf-lib
+        // 1. Load the PDF
         const pdfDocLib = await PDFDocument.load(originalPdfBytes);
         const pages = pdfDocLib.getPages();
-        const currentPage = pages[pageNum - 1]; // Get the current page
+        const currentPage = pages[pageNum - 1];
 
-        // A PDF page can have one or more content streams.
+        // 2. Decode the content stream(s) inot a single string
         const contentStreamRef = currentPage.node.get(PDFName.of('Contents'));
-
-        const streams = (contentStreamRef instanceof PDFArray)
-            ? contentStreamRef.asArray()
-            : [contentStreamRef];
-        
+        const streams = (contentStreamRef instanceof PDFArray) ? contentStreamRef.asArray() : [contentStreamRef];
         let allContents = '';
-        const decoder = new TextDecoder('utf-8');
-
+        const decoder = new TextDecoder('utf-8);
         streams.forEach(streamRef => {
-            // Important: We need to dereference the reference to get the actual stream object
             const stream = pdfDocLib.context.lookup(streamRef);
             if (stream instanceof PDFStream) {
                 allContents += decoder.decode(stream.contents);
             }
         });
-        
-        // 3. Perform the find and replace on the decoded string.
-        const newContentString = allContents.replace(new RegExp(`\\(${findText}\\)`, 'g'), `(${replaceText})`);
-        
-        // 4. Encode the new string back to bytes.
+
+        // 3. PARSE the content stream into tokens
+        const tokens = parseContentStream(allContents);
+
+        // 4. MODIFY the tokens iteligently
+        // Loop through tokens to find the text to replace.
+        // We look for a string literal followed by the "Tj" (Show Text) operator.
+        for (let i = 0; i < tokens.length; i++) {
+            // Check if the next token is 'Tj' and the current one is a string
+            if (tokens[i + 1] === 'Tj' && tokens[i].startsWith('(')) {
+                // Extract the text from inside the parentheses
+                const currentText = tokens[i].substring(1, tokens[i].length - 1);
+
+                if (currentText === findText) {
+                    console.log('Found and replaced "${findText}"');
+                    // Replace the token with the new text, wrapped in parenthesis
+                    tokens[i] = '(${replaceText})';
+                }
+            }
+        }
+
+        // 5. REBUILD the content stream from the modified tokens
+        const newContentString = tokens.join(' ');
+
         const encoder = new TextEncoder();
         const newContentBytes = encoder.encode(newContentString);
 
-        // 5. Create a new stream and update the page's contents.
+        // 6. Update the PDF with the new stream
         const newStream = pdfDocLib.context.stream(newContentBytes);
         currentPage.node.set(PDFName.of('Contents'), newStream);
 
-        // 6. Save the modified PDF
-        const newPdfBytes = await pdfDocLib.save();
-
-        // 7. Re-load the new PDF into our viewer
+        // 7. Save and re-render
+        const new PdfBytes = await pdfDocLib.save();
         console.log("Replacement complete. Re-rendering...");
-        // Re-create a copy for pdf.js to use
+
         const pdfjsBuffer = newPdfBytes.buffer.slice(0);
-        const loadingTask = pdfjsLib.getDocument(pdfjsBuffer);
-        
+        const loadingTask  = pdfjsLib.getDocument(pdfjsBuffer);
+
         loadingTask.promise.then(function(pdf) {
             pdfDoc = pdf;
-            // The original bytes are now the modified ones for future edits
             originalPdfBytes = newPdfBytes.buffer;
             renderPage(pageNum);
         });
@@ -176,10 +204,8 @@ async function findAndReplace() {
         alert("An error occurred during the replacement process. Check the console for details.");
     }
 }
-    
 
 
-document.getElementById('replace-button').addEventListener('click', findAndReplace);
 
 
 
