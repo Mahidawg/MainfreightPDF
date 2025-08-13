@@ -97,7 +97,7 @@ document.getElementById('file-input').addEventListener('change', (event) => {
 
 // The core editing function
 async function findAndReplace() {
-    if (!orinalPdfBytes) {
+    if (!originalPdfBytes) {
         alert("Please load a PDF first.")
         return;
     }
@@ -148,3 +148,4 @@ async function findAndReplace() {
 
 
 document.getElementById('replace-button').addEventListener('click', findAndReplace);
+
