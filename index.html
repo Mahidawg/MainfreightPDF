@@ -11,8 +11,16 @@
     <!-- ALL your HTML content like h1, div, canvas, button, input... -->
     <h1>PDF Viewer</h1>
     <div class="toolbar">
-        <!-- ... all your buttons and inputs ... -->
+        <input type="file" id=file-input" accept=".pdf">
+        <button id="prev-page">Previous</button>
+        <button id="next-page">Next</button>
+        <span>Page: <span id="page-num">0</span> / <span id="page-count">0</span></span>
+        <button id="inspect-content">Inspect Content Stream</button>
     </div>
+    <div class="edit-panel">
+        <input type="text" id="find-text" placeholder="Text to find">
+        <input type="text" id="replace-text" placeholder="Replace with">
+        <button id="replace-button">Replace & Re-render</button>
     <div id="pdf-viewer-container">
         <canvas id="pdf-canvas"></canvas>
     </div>
