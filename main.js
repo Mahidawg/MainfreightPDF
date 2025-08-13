@@ -154,8 +154,8 @@ async function findAndReplace() {
     });
 }
 
-
 document.getElementById('replace-button').addEventListener('click', findAndReplace);
+
 
 
 
