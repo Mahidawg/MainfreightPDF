@@ -8,6 +8,7 @@ let pdfDoc = null;
 let pageNum = 1;
 let pageRendering = false;
 let pageNumPending = null;
+let originalPdfBytes = null;
 
 const scale = 1.5;
 const canvas = document.getElementById('pdf-canvas');
@@ -144,5 +145,6 @@ async function findAndReplace() {
         renderPage(pageNum); // Render the page number
     });
 }
+
 
 document.getElementById('replace-button').addEventListener('click', findAndReplace);
