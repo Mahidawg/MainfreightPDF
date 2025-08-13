@@ -106,7 +106,7 @@ document.getElementById('file-input').addEventListener('change', (event) => {
 // The core editing function
 async function findAndReplace() {
     if (!originalPdfBytes) {
-        alert("Please load a PDF first.")
+        alert("Please load a PDF first.");
         return;
     }
 
@@ -118,43 +118,69 @@ async function findAndReplace() {
         return;
     }
 
-    // 1. Load the PDF with pdf-lib
-    const pdfDocLib = await PDFDocument.load(originalPdfBytes);
-    const pages = pdfDocLib.getPages();
-    const currentPage = pages[pageNum -1]; // Our current page
+    try {
+        const { PDFDocument, PDFArray, PDFStream, PDFName } = PDFLib;
 
-    // 2. Get the raw content stream
-    // IMPORTANT: This is a simplified approach. Real PDF's can have multiple content streams. For this example we'll assume one
-    const stream = currentPage.getContentStream();
+        // 1. Load the PDF with pdf-lib
+        const pdfDocLib = await PDFDocument.load(originalPdfBytes);
+        const pages = pdfDocLib.getPages();
+        const currentPage = pages[pageNum - 1]; // Get the current page
 
-    // 3. Perform the find and replace
-    // The operator for showing text is 'Tj'. It's represented in the raw stread as '(text) Tj'.
-    // We need to be careful with the charcater encoding. This is a naive replacement that works for simple ASCII.
-    const newContent = stream.contents.toString('utf-8').replace(
-        '(${findText}) Tj',
-        '(${replaceText}) Tj'
-    );
+        // A PDF page can have one or more content streams.
+        const contentStreamRef = currentPage.node.get(PDFName.of('Contents'));
 
-    // 4. Update the contet stream
-    // pdf-lib doesn't have a direct "update stream" method. We have to create a new one.
-    const newStream = pdfDocLib.context.stream(newContent, {});
-    currentPage.node.set(getPdfFilenameFromUrl.of('Contents'), newStream);
+        const streams = (contentStreamRef instanceof PDFArray)
+            ? contentStreamRef.asArray()
+            : [contentStreamRef];
+        
+        let allContents = '';
+        const decoder = new TextDecoder('utf-8');
 
-    // 5. Save the modified PDF
-    const newPdfBytes = await pdfDocLib.save();
+        streams.forEach(streamRef => {
+            // Important: We need to dereference the reference to get the actual stream object
+            const stream = pdfDocLib.context.lookup(streamRef);
+            if (stream instanceof PDFStream) {
+                allContents += decoder.decode(stream.contents);
+            }
+        });
+        
+        // 3. Perform the find and replace on the decoded string.
+        const newContentString = allContents.replace(new RegExp(`\\(${findText}\\)`, 'g'), `(${replaceText})`);
+        
+        // 4. Encode the new string back to bytes.
+        const encoder = new TextEncoder();
+        const newContentBytes = encoder.encode(newContentString);
 
-    // 6. Re-load the new PDF into our viewer
-    console.log("Replacement complete. Re-rendering...");
-    const loadingTask = pdfjsLib.getDocument(newPdfBytes);
-    loadingTask.promise.then(function(pdf) {
-        pdfDoc = pdf;
-        // The original bytes are now the modified ones for future edits
-        originalPdfBytes = newPdfBytes.buffer;
-        renderPage(pageNum); // Render the page number
-    });
+        // 5. Create a new stream and update the page's contents.
+        const newStream = pdfDocLib.context.stream(newContentBytes);
+        currentPage.node.set(PDFName.of('Contents'), newStream);
+
+        // 6. Save the modified PDF
+        const newPdfBytes = await pdfDocLib.save();
+
+        // 7. Re-load the new PDF into our viewer
+        console.log("Replacement complete. Re-rendering...");
+        // Re-create a copy for pdf.js to use
+        const pdfjsBuffer = newPdfBytes.buffer.slice(0);
+        const loadingTask = pdfjsLib.getDocument(pdfjsBuffer);
+        
+        loadingTask.promise.then(function(pdf) {
+            pdfDoc = pdf;
+            // The original bytes are now the modified ones for future edits
+            originalPdfBytes = newPdfBytes.buffer;
+            renderPage(pageNum);
+        });
+
+    } catch (e) {
+        console.error("Failed to replace text:", e);
+        alert("An error occurred during the replacement process. Check the console for details.");
+    }
 }
+    
+
 
 document.getElementById('replace-button').addEventListener('click', findAndReplace);
+
 
 
 
