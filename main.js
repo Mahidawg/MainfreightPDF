@@ -113,7 +113,7 @@ async function findAndReplace() {
     }
 
     // 1. Load the PDF with pdf-lib
-    const pdfDocLib = await PDFDoc.load(originalPdfBytes);
+    const pdfDocLib = await PDFDocument.load(originalPdfBytes);
     const pages = pdfDocLib.getPages();
     const currentPage = pages[pageNum -1]; // Our current page
 
@@ -150,6 +150,7 @@ async function findAndReplace() {
 
 
 document.getElementById('replace-button').addEventListener('click', findAndReplace);
+
 
 
 
